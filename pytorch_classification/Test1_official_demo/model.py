@@ -25,3 +25,9 @@ class LeNet(nn.Module):
         return x
 
 
+# import torch
+# input1=torch.randn([32,3,32,32])
+# model=LeNet()
+# print(model)
+# output1=model(input1)
+# print(output1)

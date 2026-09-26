@@ -7,6 +7,10 @@ import torchvision.transforms as transforms
 
 
 def main():
+    # 优先使用第一块 GPU；没有可用 CUDA 时继续在 CPU 上训练。
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print("Using device: {}".format(device))
+
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -21,16 +25,17 @@ def main():
     # 10000张验证图片
     # 第一次使用时要将download设置为True才会自动去下载数据集
     val_set = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=False, transform=transform)
+                                           download=True, transform=transform)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=5000,
                                              shuffle=False, num_workers=0)
     val_data_iter = iter(val_loader)
     val_image, val_label = next(val_data_iter)
     
-    # classes = ('plane', 'car', 'bird', 'cat',
-    #            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+    classes = ('plane', 'car', 'bird', 'cat',
+               'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-    net = LeNet()
+    # 模型先迁移到目标设备，再创建优化器。
+    net = LeNet().to(device)
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=0.001)
 
@@ -40,6 +45,9 @@ def main():
         for step, data in enumerate(train_loader, start=0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
+            # 输入和标签必须与模型位于同一设备。
+            inputs = inputs.to(device)
+            labels = labels.to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -53,9 +61,10 @@ def main():
             running_loss += loss.item()
             if step % 500 == 499:    # print every 500 mini-batches
                 with torch.no_grad():
-                    outputs = net(val_image)  # [batch, 10]
+                    # 验证数据也迁移到模型所在设备。
+                    outputs = net(val_image.to(device))  # [batch, 10]
                     predict_y = torch.max(outputs, dim=1)[1]
-                    accuracy = torch.eq(predict_y, val_label).sum().item() / val_label.size(0)
+                    accuracy = torch.eq(predict_y, val_label.to(device)).sum().item() / val_label.size(0)
 
                     print('[%d, %5d] train_loss: %.3f  test_accuracy: %.3f' %
                           (epoch + 1, step + 1, running_loss / 500, accuracy))
