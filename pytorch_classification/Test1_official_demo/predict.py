@@ -23,7 +23,9 @@ def main():
 
     with torch.no_grad():
         outputs = net(im)
+        outputs = torch.softmax(outputs, dim=1) # 归一化
         predict = torch.max(outputs, dim=1)[1].numpy()
+    print(outputs)
     print(classes[int(predict)])
 
 

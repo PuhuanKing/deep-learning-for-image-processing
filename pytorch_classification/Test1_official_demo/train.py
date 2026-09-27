@@ -4,7 +4,7 @@ import torch.nn as nn
 from model import LeNet
 import torch.optim as optim
 import torchvision.transforms as transforms
-
+# 运行时需要先打开到data路径下
 
 def main():
     # 优先使用第一块 GPU；没有可用 CUDA 时继续在 CPU 上训练。
